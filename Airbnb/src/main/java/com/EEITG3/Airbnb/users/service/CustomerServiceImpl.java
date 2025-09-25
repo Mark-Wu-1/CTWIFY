@@ -1,0 +1,307 @@
+package com.EEITG3.Airbnb.users.service;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.EEITG3.Airbnb.jwt.EmailService;
+import com.EEITG3.Airbnb.jwt.JwtService;
+import com.EEITG3.Airbnb.users.dto.LogInRequest;
+import com.EEITG3.Airbnb.users.dto.MonthlyRegist;
+import com.EEITG3.Airbnb.users.dto.SignUpRequest;
+import com.EEITG3.Airbnb.users.entity.Customer;
+import com.EEITG3.Airbnb.users.entity.CustomerDetails;
+import com.EEITG3.Airbnb.users.repository.CustomerRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.api.client.auth.openidconnect.IdToken.Payload;
+
+@Service
+public class CustomerServiceImpl implements CustomerService {
+
+	private CustomerRepository repo;
+	private ObjectMapper objectMapper;
+	private JwtService jwtService;
+	private AuthenticationManager authManager;
+	private PasswordEncoder encoder;
+	private EmailService emailService;
+	
+	@Value("${app.storage.base-dir}")
+    private String baseDir;
+	
+	@Autowired
+	public CustomerServiceImpl(CustomerRepository repo, ObjectMapper objectMapper, JwtService jwtService,
+			AuthenticationManager authManager, PasswordEncoder encoder, EmailService emailService) {
+		super();
+		this.repo = repo;
+		this.objectMapper = objectMapper;
+		this.jwtService = jwtService;
+		this.authManager = authManager;
+		this.encoder = encoder;
+		this.emailService = emailService;
+	}
+	
+	@Override
+	public String customerLogin(LogInRequest request) {
+		Authentication authentication = authManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+		//如果驗證沒通過，拋出Exception，驗證失敗
+		if(!authentication.isAuthenticated()) {
+			throw new BadCredentialsException("驗證失敗");
+		}
+		//如果找不到帳戶，拋出Exception，帳號不存在
+		Optional<Customer> temp = repo.findCustomerByEmail(request.getEmail());
+		if(!temp.isPresent()) {
+			throw new BadCredentialsException("帳號不存在");
+		}
+		Customer customer = temp.get();
+		return jwtService.generateToken(customer.getEmail(), "ROLE_CUSTOMER");
+	}
+
+	@Override
+	public void customerSignup(SignUpRequest request) {
+		System.out.println(request.getEmail());
+		Optional<Customer> temp = repo.findCustomerByEmail(request.getEmail());
+		//表示已經有註冊過了
+		if(temp.isPresent()) {
+			throw new IllegalArgumentException("帳號已存在");
+		}
+		//先對密碼進行加密
+		String encodedPassword = encoder.encode(request.getPassword());
+		//用request收到的資料建立新的entity
+		Customer customer = new Customer(request.getEmail(),encodedPassword,request.getUsername(),request.getPhone());
+		//產生驗證信用的Token
+		String token = UUID.randomUUID().toString();
+		//設定驗證相關資料
+		customer.setVerificationToken(token);
+		customer.setVerified(false);
+		//存入資料庫
+		repo.save(customer);
+		//發送驗證信
+		emailService.sendCustomerVerificationEmail(customer.getEmail(), token, customer.getUsername());
+	}
+	
+	@Override
+	public String verify(String token) {
+		Optional<Customer> temp = repo.findCustomerByToken(token);
+		
+		//無法透過token找到客戶(驗證沒過)
+		if(!temp.isPresent()) {
+			throw new RuntimeException("無效的連結");
+		}
+		//驗證過了，把已驗證設為true其他資料清掉
+		Customer customer = temp.get();	
+		customer.setVerified(true);
+		customer.setVerificationToken(null);
+		repo.save(customer);
+		return jwtService.generateToken(customer.getEmail(), "ROLE_CUSTOMER");
+	}
+	
+	@Override
+	public Customer currentCustomer(CustomerDetails customerDetails) {
+		Optional<Customer> temp = repo.findCustomerByEmail(customerDetails.getUsername());
+		if(!temp.isPresent()) {
+			throw new RuntimeException("找不到客戶");
+		}
+		Customer customer = temp.get();
+		return customer;
+	}
+	
+	@Override
+	public Customer customerUpdate(Map<String, Object> patchPayload, CustomerDetails customerDetails) {
+		Optional<Customer> temp = repo.findCustomerByEmail(customerDetails.getUsername());
+		if(!temp.isPresent()) {
+			throw new RuntimeException("找不到客戶");
+		}
+		Customer customer = temp.get();
+		Customer updatedCustomer = apply(patchPayload, customer);
+		return repo.save(updatedCustomer);
+	}
+	private Customer apply(Map<String, Object> patchPayload, Customer customer) {
+		if(patchPayload.get("password")!=null) {
+			String pwd = (String) patchPayload.get("password");
+			String newPwd = encoder.encode(pwd);
+			patchPayload.put("password", newPwd);
+		}
+		ObjectNode customerNode = objectMapper.convertValue(customer, ObjectNode.class);
+		ObjectNode patchNode = objectMapper.convertValue(patchPayload, ObjectNode.class);
+		customerNode.setAll(patchNode);
+		return objectMapper.convertValue(customerNode, Customer.class);
+	}
+	
+	@Override
+	public Customer updateAvatar(Customer customer, MultipartFile avatar) throws IOException {
+		Path avatarDir = Paths.get(baseDir,"avatar","customers");
+		Files.createDirectories(avatarDir);
+		String ext = getExtension(avatar.getOriginalFilename());
+		String filename = customer.getCustomerId()+"."+ext;
+		Files.copy(avatar.getInputStream(), avatarDir.resolve(filename),StandardCopyOption.REPLACE_EXISTING);
+		String avatarURL = "/images/avatar/customers/"+filename;
+		customer.setAvatarURL(avatarURL);
+		return repo.save(customer);
+	}
+	//取得副檔名.jpg之類的
+	private String getExtension(String filename) {
+        if (filename == null) return "png";
+        int dotIndex = filename.lastIndexOf('.');
+        return (dotIndex >= 0) ? filename.substring(+1).toLowerCase() : "png";
+    }
+	
+	@Override
+	public void forgetPwd(String email) {
+		//用email找客戶
+		System.out.println(email);
+		Optional<Customer> temp = repo.findCustomerByEmail(email);
+		System.out.println(temp.isPresent());
+		if(!temp.isPresent()) {
+			throw new IllegalArgumentException("你還未註冊");
+		}
+		Customer customer = temp.get();
+		//設定驗證用的UUID token
+		String token = UUID.randomUUID().toString();
+		customer.setVerificationToken(token);
+		repo.save(customer);
+		//呼叫發送驗證信的service
+		emailService.sendCustomerForgetPwdEmail(email,token);
+		
+	}
+	
+	@Override
+	public String loginWithGoogle(Payload payload) {
+		String email = (String)payload.get("email");
+		Optional<Customer> temp = repo.findCustomerByEmail(email);
+		if(temp.isPresent()) {
+			Customer customer = temp.get();
+			if(customer.isVerified()) {
+				return jwtService.generateToken(customer.getEmail(), "ROLE_CUSTOMER");
+			}
+			return null;
+		}else {
+			SignUpRequest signUpRequest = new SignUpRequest();
+			signUpRequest.setEmail(email);
+			signUpRequest.setPassword(UUID.randomUUID().toString());
+			signUpRequest.setPhone("");
+			signUpRequest.setUsername((String)payload.get("name"));
+			return signupWithGoogle(signUpRequest);
+		}
+	}
+	
+	//專門為 google 登入做的註冊功能
+	private String signupWithGoogle(SignUpRequest request) {
+		String encodedPassword = encoder.encode(request.getPassword());
+		Customer customer = new Customer(request.getEmail(),encodedPassword,request.getUsername(),request.getPhone());
+		customer.setVerified(true);
+		repo.save(customer);
+		return jwtService.generateToken(customer.getEmail(), "ROLE_CUSTOMER");
+	}
+	
+	
+	
+	@Override
+	public List<Customer> findAllCustomers() {
+		return repo.findAll();
+	}
+	
+	@Override
+	public Customer suspend(String email, String reason) {
+		Optional<Customer> temp = repo.findCustomerByEmail(email);
+		Customer customer = new Customer();
+		if(temp.isPresent()) {
+			customer = temp.get();
+		}
+		customer.setActive(false);
+		customer.setSuspensionReason(reason);
+		return repo.save(customer);
+	}
+	
+	
+	
+	@Override
+	public Customer permission(String status, String customerEmail) {
+		//先找到客戶
+		Optional<Customer> temp = repo.findCustomerByEmail(customerEmail);
+		Customer customer = new Customer();
+		if(temp.isPresent()) {
+			customer = temp.get();
+		}
+		//看前端傳來的指令是什麼，執行對應動作
+		switch (status){
+		case "ACTIVE": {
+			customer.setActive(true);
+			break;
+		}
+		case "SUSPEND": {
+			customer.setActive(false);
+			break;
+		}
+		default:
+			throw new IllegalArgumentException("Unexpected value: " + status);
+		}
+		//把更新後的狀態存回資料庫、回傳更新後的資料
+		return repo.save(customer);
+	}
+	
+	@Override
+	public List<Customer> findLikeByEmail(String email) {
+		String likeEmail = "%"+email+"%";
+		return repo.findLikeByEmail(likeEmail);
+	}
+
+	@Override
+	public List<Customer> findLikeByUsername(String username) {
+		String likeUsername = "%"+username+"%";
+		return repo.findLikeByUsername(likeUsername);
+	}
+
+	@Override
+	public List<Customer> findLikeByPhone(String phone) {
+		String likePhone = "%"+phone+"%";
+		return repo.findLikeByPhone(likePhone);
+	}
+
+	@Override
+	public Map<String, Object> getMonthlyRegist() {
+		List<MonthlyRegist> monthlyRegists = repo.getMonthlyRegist();
+		Map<String, Object> result = new HashMap<String, Object>();
+		List<String> months = new ArrayList<String>();
+		List<Integer> registrations = new ArrayList<Integer>();
+		for(MonthlyRegist data : monthlyRegists) {
+			months.add(data.getMonth());
+			registrations.add(data.getRegistrations());
+		}
+		result.put("months", months);
+		result.put("registrations", registrations);
+		return result;
+	}
+
+	@Override
+	public Integer getTotalCustomers() {
+		return repo.getTotalCustomers();
+	}
+
+	@Override
+	public Integer getVerifiedCustomers() {
+		return repo.getVerifiedCustomers();
+	}
+
+	
+	
+}

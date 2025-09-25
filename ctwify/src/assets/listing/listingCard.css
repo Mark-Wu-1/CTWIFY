@@ -1,0 +1,146 @@
+/* 🔹 全局容器：統一最大寬度，置中 */
+.container1 {
+  width: 100%;
+  max-width: 1200px; /* 統一最大寬度 */
+  margin: 0 auto;   /* 置中 */
+  padding: 0 16px;  /* 預留左右間距，避免貼邊 */
+}
+
+/* 🔹 搜尋欄 */
+.naver2 {
+  display: flex;
+  border: 0.5px solid gray;
+  box-shadow: 5px 5px 5px gray;
+  border-radius: 20px;
+  height: 65px;
+  margin-top: 80px;
+  padding: 0.5rem 0;
+}
+
+.search-input2,
+.search-input3,
+.search-input4 {
+  padding: 15px 16px;
+  border: 1px solid #ddd;
+  width: 200px;
+  box-sizing: border-box;
+}
+
+.search-input4 {
+  border-radius: 0px 10px 10px 0px;
+  margin: 0px 60px;
+}
+
+/* 🔹 搜尋按鈕 */
+.btn {
+  writing-mode: horizontal-tb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0px 30px;
+  font-size: 17px;
+  border: none;
+  background-color: #f07b2d;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+  margin: 0px 1px;
+}
+
+/* 🔹 房源區塊外框 */
+.listing-wrapper {
+  position: relative; /* 讓箭頭能相對定位 */
+  margin: 40px auto;
+  max-width: 1200px; /* 統一最大寬度 */
+}
+
+/* 🔹 房源卡容器 */
+.listing-container {
+  overflow: hidden;
+  position: relative;
+}
+
+/* 🔹 卡片橫向滑動區 */
+.listing-scroll {
+  display: flex;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  gap: 16px;
+  padding-bottom: 12px;
+
+  scrollbar-width: none;        
+  -ms-overflow-style: none; 
+}
+.listing-scroll::-webkit-scrollbar {
+  display: none;               
+}
+
+/* 🔹 房源卡片 */
+.listing-card {
+  flex: 0 0 auto;
+  width: 260px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  background-color: white;
+  transition: transform 0.2s;
+}
+.listing-card:hover {
+  transform: translateY(-4px);
+}
+
+/* 🔹 卡片圖片 */
+.listing-img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+
+/* 🔹 卡片資訊 */
+.listing-info {
+  padding: 12px;
+}
+.listing-info h3 {
+  font-size: 1.1rem;
+  margin-bottom: 6px;
+}
+.listing-info p {
+  margin: 2px 0;
+}
+.price {
+  color: #595859;
+  font-weight: bold;
+}
+
+/* 🔹 左右箭頭 */
+.arrow-icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 40px;
+  border: none;
+  background: transparent;
+  padding: 8px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s;
+  color: #888;
+  z-index: 10;
+}
+
+/* hover 效果 */
+.arrow-icon:hover {
+  transform: translateY(-50%) scale(1.2);
+  color: #333;
+}
+.listing-wrapper:hover .arrow-icon {
+  opacity: 1;
+}
+
+/* 🔹 左右定位：靠容器邊緣 */
+.arrow-icon.left {
+  left: 0;
+}
+.arrow-icon.right {
+  right: 0;
+}

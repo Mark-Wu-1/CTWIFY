@@ -1,0 +1,2 @@
+2025-09-24 11:17:59.102 [restartedMain] INFO  c.E.A.AirbnbApplication - Starting AirbnbApplication using Java 21.0.7 with PID 22812 (E:\EEIT202\Airbnb\Airbnb\target\classes started by eszrd in E:\EEIT202\Airbnb\Airbnb)
+2025-09-24 11:17:59.103 [restartedMain] INFO  c.E.A.AirbnbApplication - No active profile set, falling back to 1 default profile: "default"
