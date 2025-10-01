@@ -1,0 +1,113 @@
+# -------------------------------------------------------------
+# OS junk files
+# -------------------------------------------------------------
+.DS_Store
+Thumbs.db
+
+# -------------------------------------------------------------
+# Logs
+# -------------------------------------------------------------
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# -------------------------------------------------------------
+# Eclipse / STS
+# -------------------------------------------------------------
+.classpath
+.project
+.settings/
+.apt_generated
+.factorypath
+.springBeans
+.sts4-cache
+.metadata/
+.recommenders/
+
+# -------------------------------------------------------------
+# IntelliJ IDEA
+# -------------------------------------------------------------
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# -------------------------------------------------------------
+# NetBeans
+# -------------------------------------------------------------
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# -------------------------------------------------------------
+# VSCode
+# -------------------------------------------------------------
+.vscode/
+
+# -------------------------------------------------------------
+# Java / Maven / Gradle build
+# -------------------------------------------------------------
+target/
+build/
+bin/
+*.class
+*.jar
+*.war
+*.ear
+.mvn/
+.mvn/wrapper/maven-wrapper.jar
+
+# -------------------------------------------------------------
+# Tomcat deployment
+# -------------------------------------------------------------
+/apache-tomcat-10.1.41/
+wtpwebapps/
+Servers/
+server/
+.work/
+temp/
+logs/
+.buildpath
+
+# -------------------------------------------------------------
+# Vue / Node.js frontend
+# -------------------------------------------------------------
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/coverage/
+frontend/.tsbuildinfo
+frontend/cypress/videos/
+frontend/cypress/screenshots/
+
+# -------------------------------------------------------------
+# Generic Node.js ignores (in case frontend used yarn/pnpm/etc.)
+# -------------------------------------------------------------
+node_modules/
+dist/
+dist-ssr/
+coverage/
+*.local
+*.tsbuildinfo
+cypress/videos/
+cypress/screenshots/
+
+# -------------------------------------------------------------
+# Editor backups
+# -------------------------------------------------------------
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swo
+*.swp
+/Airbnb/photo
+/front-end/public/carPicture
