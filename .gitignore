@@ -27,6 +27,7 @@ lerna-debug.log*
 .sts4-cache
 .metadata/
 .recommenders/
+.class
 
 # -------------------------------------------------------------
 # IntelliJ IDEA
