@@ -58,6 +58,6 @@
   - 管理員評論管理
   - 即時客服管理
 
-<img width="780" height="580" alt="user" src="https://https://github.com/Mark-Wu-1/CTWIFY/test/104.png" />
+<img width="780" height="580" alt="user" src="https://github.com/Mark-Wu-1/CTWIFY/blob/test/104.png?raw=true" />
 <img width="780" height="580" alt="admin" src="https://github.com/Mark-Wu-1/CTWIFY/blob/test/104-2.png" />
 
