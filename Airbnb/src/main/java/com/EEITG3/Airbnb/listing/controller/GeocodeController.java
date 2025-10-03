@@ -14,9 +14,6 @@ public class GeocodeController {
 
 
 
-    private final String GOOGLE_API_KEY = "AIzaSyBO1x0gEVOrnpwN1hLYQUbDwMF6wpYgCvg"; //整合時再放上 怕次數過量
-
-
     @GetMapping
     public ResponseEntity<?> geocode(@RequestParam String address) {
         try {
